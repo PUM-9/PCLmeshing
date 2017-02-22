@@ -13,7 +13,7 @@
 #include <pcl/surface/poisson.h>
 
 
-int main (int argc, char** argv)
+int main(int argc, char** argv)
 {
     std::cout << "Loading file" << std::endl;
   
@@ -35,9 +35,9 @@ int main (int argc, char** argv)
     // Filter in x axis
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered_x(new pcl::PointCloud<pcl::PointXYZ>);
     pass.setInputCloud(cloud);
-    pass.setFilterFieldName ("x");
+    pass.setFilterFieldName("x");
     pass.setFilterLimits(0.0, 1.0);
-    pass.setFilterLimitsNegative (true);
+    pass.setFilterLimitsNegative(true);
     pass.filter(*cloud_filtered_x);
     
     // Filter in z axis
@@ -77,13 +77,19 @@ int main (int argc, char** argv)
     n.compute(*normals);
     //* normals should now contain the point normals + surface curvatures
 
+    // Reverse the direction of all normals
+    for (size_t i = 0; i < normals->size(); ++i) {
+        normals->points[i].normal_x *= -1;
+	normals->points[i].normal_y *= -1;
+	normals->points[i].normal_z *= -1;
+    }
+    
     // Concatenate the XYZ and normal fields*
     pcl::PointCloud<pcl::PointNormal>::Ptr cloud_with_normals(new pcl::PointCloud<pcl::PointNormal>);
     pcl::concatenateFields(*cloud_filtered, *normals, *cloud_with_normals);
     //* cloud_with_normals = cloud + normals
 
     std::cout << "Begin poisson reconstruction" << std::endl;
-    
     pcl::Poisson<pcl::PointNormal> poisson;
     poisson.setDepth(9);
     poisson.setInputCloud(cloud_with_normals);
