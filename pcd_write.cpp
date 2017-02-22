@@ -1,24 +1,15 @@
+#include <iostream>
 #include <pcl/point_types.h>
 #include <pcl/io/pcd_io.h>
-#include <pcl/kdtree/kdtree_flann.h>
-#include <pcl/features/normal_3d.h>
-#include <pcl/surface/gp3.h>
-
 #include <pcl/io/vtk_io.h>
 #include <pcl/io/vtk_lib_io.h>
-#include <iostream>
-#include <pcl/filters/passthrough.h>
-
 #include <pcl/search/kdtree.h>
-#include <pcl/search/impl/kdtree.hpp>
-#include <pcl/kdtree/impl/kdtree_flann.hpp>
+#include <pcl/kdtree/kdtree_flann.h>
 #include <pcl/search/organized.h>
-#include <pcl/search/impl/organized.hpp>
-#include <pcl/surface/gp3.h>
-#include <pcl/surface/impl/gp3.hpp>
 #include <pcl/features/normal_3d.h>
-#include <pcl/features/impl/normal_3d.hpp>
-#include <pcl/filters/impl/passthrough.hpp>
+#include <pcl/surface/gp3.h>
+#include <pcl/filters/passthrough.h>
+#include <pcl/surface/poisson.h>
 
 int main (int argc, char** argv)
 {
@@ -70,39 +61,15 @@ int main (int argc, char** argv)
   pcl::concatenateFields (*cloud_filtered, *normals, *cloud_with_normals);
   //* cloud_with_normals = cloud + normals
 
-  // Create search tree*
-  pcl::search::KdTree<pcl::PointNormal>::Ptr tree2 (new pcl::search::KdTree<pcl::PointNormal>);
-  tree2->setInputCloud (cloud_with_normals);
+  std::cout << "Begin poisson reconstruction" << std::endl;
 
-  // Initialize objects
-  pcl::GreedyProjectionTriangulation<pcl::PointNormal> gp3;
+  pcl::Poisson<pcl::PointNormal> poisson;
+  poisson.setDepth(9);
+  poisson.setInputCloud(cloud_with_normals);
   pcl::PolygonMesh triangles;
-
-  // Set the maximum distance between connected points (maximum edge length)
-  gp3.setSearchRadius (0.1);
-
-  // Set typical values for the parameters
-  gp3.setMu (2.5);
-  gp3.setMaximumNearestNeighbors (100);
-  gp3.setMaximumSurfaceAngle(M_PI/4); // 45 degrees
-  gp3.setMinimumAngle(M_PI/18); // 10 degrees
-  gp3.setMaximumAngle(2*M_PI/3); // 120 degrees
-  gp3.setNormalConsistency(false);
-
-  std::cout << "Reconstructing" << std::endl;
-
-  // Get result
-  gp3.setInputCloud (cloud_with_normals);
-  gp3.setSearchMethod (tree2);
-  gp3.reconstruct (triangles);
+  poisson.reconstruct(triangles);
   
-  // Additional vertex information
-  std::vector<int> parts = gp3.getPartIDs();
-  std::vector<int> states = gp3.getPointStates();
-
-  pcl::io::savePolygonFile("mesh.stl", triangles);
-  
-  if (pcl::io::savePolygonFile("mesh.vtk", triangles)) {
+  if (pcl::io::savePolygonFile("mesh.stl", triangles) && pcl::io::savePolygonFile("mesh.vtk", triangles)) {
     std::cout << "Saved file successfully" << std::endl;
   } else {
     std::cout << "Failed to save file" << std::endl;
