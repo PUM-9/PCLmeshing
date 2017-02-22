@@ -9,7 +9,9 @@
 #include <pcl/features/normal_3d.h>
 #include <pcl/surface/gp3.h>
 #include <pcl/filters/passthrough.h>
+#include <pcl/filters/radius_outlier_removal.h>
 #include <pcl/surface/poisson.h>
+
 
 int main (int argc, char** argv)
 {
@@ -25,6 +27,7 @@ int main (int argc, char** argv)
   //* the data should be available in cloud
 
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered_first(new pcl::PointCloud<pcl::PointXYZ>);
+  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered_second(new pcl::PointCloud<pcl::PointXYZ>);
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>);
 
   // Create the filtering object
@@ -39,7 +42,14 @@ int main (int argc, char** argv)
   pass.setFilterFieldName("z");
   pass.setFilterLimits(-10, 10);
   pass.setFilterLimitsNegative(true);
-  pass.filter(*cloud_filtered);
+  pass.filter(*cloud_filtered_second);
+
+  // Remove points that are far away from other points
+  pcl::RadiusOutlierRemoval<pcl::PointXYZ> outlier_filter;
+  outlier_filter.setInputCloud(cloud_filtered_second);
+  outlier_filter.setRadiusSearch(0.8);
+  outlier_filter.setMinNeighborsInRadius(2);
+  outlier_filter.filter(*cloud_filtered);
   
   std::cout << "Saving filtered cloud" << std::endl;
   pcl::io::savePCDFile("bun0_filtered.pcd", *cloud_filtered);
