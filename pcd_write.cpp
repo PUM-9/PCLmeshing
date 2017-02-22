@@ -26,28 +26,38 @@ int main (int argc, char** argv)
   pcl::fromPCLPointCloud2 (cloud_blob, *cloud);
   //* the data should be available in cloud
 
-  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered_first(new pcl::PointCloud<pcl::PointXYZ>);
-  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered_second(new pcl::PointCloud<pcl::PointXYZ>);
+  // Create the object that the filtered point cloud will be stored in
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>);
 
   // Create the filtering object
   pcl::PassThrough<pcl::PointXYZ> pass;
+
+  // Filter in x axis
+  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered_x(new pcl::PointCloud<pcl::PointXYZ>);
   pass.setInputCloud (cloud);
   pass.setFilterFieldName ("x");
   pass.setFilterLimits (0.0, 1.0);
   pass.setFilterLimitsNegative (true);
-  pass.filter (*cloud_filtered_first);
+  pass.filter (*cloud_filtered_x);
 
-  pass.setInputCloud(cloud_filtered_first);
+  // Filter in z axis
+  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered_xz(new pcl::PointCloud<pcl::PointXYZ>);
+  pass.setInputCloud(cloud_filtered_x);
   pass.setFilterFieldName("z");
   pass.setFilterLimits(-10, 10);
-  pass.setFilterLimitsNegative(true);
-  pass.filter(*cloud_filtered_second);
+  pass.filter(*cloud_filtered_xz);
+
+  // Filter in y axis
+  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered_xyz(new pcl::PointCloud<pcl::PointXYZ>);
+  pass.setInputCloud(cloud_filtered_xz);
+  pass.setFilterFieldName("y");
+  pass.setFilterLimits(0, 564);
+  pass.filter(*cloud_filtered_xyz);
 
   // Remove points that are far away from other points
   pcl::RadiusOutlierRemoval<pcl::PointXYZ> outlier_filter;
-  outlier_filter.setInputCloud(cloud_filtered_second);
-  outlier_filter.setRadiusSearch(0.8);
+  outlier_filter.setInputCloud(cloud_filtered_xyz);
+  outlier_filter.setRadiusSearch(1.2);
   outlier_filter.setMinNeighborsInRadius(2);
   outlier_filter.filter(*cloud_filtered);
   
